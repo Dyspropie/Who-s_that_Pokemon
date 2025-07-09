@@ -7,6 +7,7 @@
 ## 🧠 Features
 
 - ASCII Pokémon art using `ascii_magic`
+- Difficulty levels: easy, medium, hard
 
 ---
 
@@ -17,7 +18,6 @@
 - Python 3.7+
 - `ascii_magic`
 - `requests`
-- `Difficulty levels: easy, medium, hard`
 
 ---
 
