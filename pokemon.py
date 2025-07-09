@@ -1,10 +1,32 @@
 import requests
 import random
 import os
+import time
 import ascii_magic
+import pygame
 
 # Score
 SCORE = 0
+
+# --- Audio Function ---
+def play_audio():
+    try:
+        pygame.mixer.init()
+        pygame.mixer.music.load("whos_that_pokemon.mp3")
+        pygame.mixer.music.play()
+        while pygame.mixer.music.get_busy():
+            continue  # wait for audio to finish
+    except Exception as e:
+        print("🎵 (Audio failed or missing):", e)
+    
+# Pokemon in Ascii art
+def display_ascii_image(image_url):
+    try:
+        art = ascii_magic.AsciiArt.from_url(image_url)
+        ascii_image = art.to_ascii(columns=60)
+        print(ascii_image)
+    except Exception as e:
+        print("Error displaying ASCII image:", e)
 
 #Defining getting random pokemon id function
 def get_random_pokemon(difficulty):
@@ -25,37 +47,39 @@ def get_random_pokemon(difficulty):
         return name, image_url
     else:
         return None, None
-    
-# Pokemon in Ascii art
-def display_ascii_image(image_url):
-    try:
-        art = ascii_magic.AsciiArt.from_url(image_url)
-        ascii_image = art.to_ascii(columns=60)
-        print(ascii_image)
-    except Exception as e:
-        print("Error displaying ASCII image:", e)
-
 
 # Main game code
 def game(difficulty):
     global SCORE
     name, image_url = get_random_pokemon(difficulty)
     if not name or not image_url:
-        print("Couldnt load Pokemon")
+        print("⚠️ Couldn't load Pokémon.")
         return
-    
+
     os.system("cls" if os.name == "nt" else "clear")
-    print("Who's That Pokemon?\n")
+    print("🎵 Playing Sound...")
+    play_audio()
+
+    print("\n🕵️ Who's That Pokémon?\n")
     display_ascii_image(image_url)
 
+    start_time = time.time()
     guess = input("\nYour Guess: ").strip().lower()
-    if guess == name.lower():
-        print(f"Correct! It's {name.capitalize()}! (+10)")
-        SCORE += 10
-    else:
-        print(f"Nope! It's {name.capitalize()}! (+0)")
+    end_time = time.time()
 
-    print(f"Total Score: {SCORE}")
+    time_taken = round(end_time - start_time, 2)
+    print(f"\n⏱️ Time Taken: {time_taken} seconds")
+
+    if guess == name.lower():
+        base_score = 10
+        speed_bonus = max(5 - time_taken, 0)  # Max +5
+        round_score = int(base_score + speed_bonus)
+        print(f"🎉 Correct! It’s {name.capitalize()}! (+{round_score} points)")
+        SCORE += round_score
+    else:
+        print(f"❌ Nope! It was {name.capitalize()}.")
+
+    print(f"🏆 Total Score: {SCORE}")
 
 # Difficulty 
 def select_difficulty():
@@ -63,9 +87,9 @@ def select_difficulty():
         level = input("Select difficulty (easy / medium / hard): ").strip().lower()
         if level in ["easy", "medium", "hard"]:
             return level
-        print("Invalid input. Try again.")
+        print("❌ Invalid input. Try again.")
 
-# Main
+# Main loop
 def main():
     print("🎮 Welcome to 'Who's That Pokémon?' (CLI Edition)")
     difficulty = select_difficulty()
