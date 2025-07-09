@@ -8,6 +8,7 @@
 
 - ASCII Pokémon art using `ascii_magic`
 - Difficulty levels: easy, medium, hard
+- Replay loop with score tracking
 
 ---
 

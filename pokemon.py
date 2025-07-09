@@ -3,6 +3,9 @@ import random
 import os
 import ascii_magic
 
+# Score
+SCORE = 0
+
 #Defining getting random pokemon id function
 def get_random_pokemon(difficulty):
     if difficulty == "easy":
@@ -35,6 +38,7 @@ def display_ascii_image(image_url):
 
 # Main game code
 def game(difficulty):
+    global SCORE
     name, image_url = get_random_pokemon(difficulty)
     if not name or not image_url:
         print("Couldnt load Pokemon")
@@ -46,9 +50,12 @@ def game(difficulty):
 
     guess = input("\nYour Guess: ").strip().lower()
     if guess == name.lower():
-        print(f"Correct! It's {name.capitalize()}!")
+        print(f"Correct! It's {name.capitalize()}! (+10)")
+        SCORE += 10
     else:
-        print(f"Nope! It was {name.capitalize()}.")
+        print(f"Nope! It's {name.capitalize()}! (+0)")
+
+    print(f"Total Score: {SCORE}")
 
 # Difficulty 
 def select_difficulty():
@@ -62,7 +69,13 @@ def select_difficulty():
 def main():
     print("🎮 Welcome to 'Who's That Pokémon?' (CLI Edition)")
     difficulty = select_difficulty()
-    game(difficulty)
+    while True:
+            game(difficulty)
+            again = input("\n🔁 Play Again? (y/n): ").strip().lower()
+            if again != 'y':
+                print("\n👋 Thanks for playing! Final Score:", SCORE)
+                break
 
+            
 if __name__ == "__main__":
     main()
