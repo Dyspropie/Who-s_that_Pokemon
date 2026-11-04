@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChatMessage } from '../types';
+import { getMascot } from '../data/mascots';
 import { MessageSquare, Send, ChevronUp, ChevronDown } from 'lucide-react';
 
 interface ChatDrawerProps {
@@ -33,11 +34,11 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end">
+    <div className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 z-50 flex flex-col items-end">
       {/* Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-2xl border border-slate-700 hover:bg-slate-800 transition active:scale-95 cursor-pointer"
+        className="flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white shadow-2xl border-2 border-red-600 hover:bg-slate-800 transition active:scale-95 cursor-pointer"
       >
         <MessageSquare className="h-4 w-4 text-amber-400" />
         <span>Room Chat</span>
@@ -51,11 +52,11 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
 
       {/* Expanded Chat Box */}
       {isOpen && (
-        <div className="mt-2 flex h-80 w-80 sm:w-96 flex-col overflow-hidden rounded-3xl bg-slate-950/95 p-3 border border-slate-800 shadow-2xl backdrop-blur-xl">
+        <div className="mt-2 flex h-80 w-[calc(100vw-24px)] sm:w-96 flex-col overflow-hidden rounded-3xl border-2 border-slate-700 bg-slate-950/95 p-3 shadow-2xl backdrop-blur-xl">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-800/80 px-2 pb-2">
-            <span className="text-xs font-bold text-slate-300">Trainer Chat</span>
-            <span className="text-[10px] text-slate-500 font-mono">Live Sync</span>
+          <div className="flex items-center justify-between border-b border-slate-800 px-2 pb-2">
+            <span className="text-xs font-black uppercase tracking-wider text-amber-400">Trainer Chat</span>
+            <span className="text-[10px] text-slate-500 font-mono">LIVE SYNC</span>
           </div>
 
           {/* Quick Reaction Emojis */}
@@ -74,61 +75,71 @@ export const ChatDrawer: React.FC<ChatDrawerProps> = ({
           {/* Message Stream */}
           <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-2">
             {messages.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-xs text-slate-500">
-                No chat messages yet. Say hi!
+              <div className="flex h-full items-center justify-center text-xs text-slate-500 font-bold">
+                No chat messages yet. Send a taunt!
               </div>
             ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col text-xs ${
-                    msg.isSystem
-                      ? 'items-center text-amber-400/90 italic text-[11px] my-1'
-                      : msg.senderId === currentPlayerId
-                      ? 'items-end'
-                      : 'items-start'
-                  }`}
-                >
-                  {!msg.isSystem && (
-                    <span className="text-[10px] font-semibold text-slate-400 mb-0.5">
-                      {msg.senderName}
-                    </span>
-                  )}
+              messages.map((msg) => {
+                const isCurrent = msg.senderId === currentPlayerId;
+                const mascot = getMascot(msg.senderAvatar);
+
+                return (
                   <div
-                    className={`rounded-2xl px-3 py-1.5 max-w-[85%] ${
+                    key={msg.id}
+                    className={`flex flex-col text-xs ${
                       msg.isSystem
-                        ? 'bg-amber-400/10 border border-amber-400/20 px-2 py-0.5'
-                        : msg.senderId === currentPlayerId
-                        ? 'bg-red-600 text-white shadow-sm'
-                        : 'bg-slate-800 text-slate-200'
+                        ? 'items-center text-amber-300 italic text-[11px] my-1'
+                        : isCurrent
+                        ? 'items-end'
+                        : 'items-start'
                     }`}
                   >
-                    {msg.emoji ? (
-                      <span className="text-xl">{msg.emoji}</span>
-                    ) : (
-                      <span>{msg.text}</span>
+                    {!msg.isSystem && (
+                      <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 mb-0.5">
+                        <img
+                          src={mascot.spriteUrl}
+                          alt={mascot.name}
+                          className="h-4 w-4 object-contain pokemon-sprite-icon"
+                        />
+                        <span>{msg.senderName}</span>
+                      </div>
                     )}
+                    <div
+                      className={`rounded-2xl px-3 py-1.5 max-w-[85%] font-medium ${
+                        msg.isSystem
+                          ? 'bg-amber-400/15 border border-amber-400/30 px-3 py-1 text-center font-bold'
+                          : isCurrent
+                          ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-sm'
+                          : 'bg-slate-800 text-slate-200 border border-slate-700'
+                      }`}
+                    >
+                      {msg.emoji ? (
+                        <span className="text-xl">{msg.emoji}</span>
+                      ) : (
+                        <span>{msg.text}</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input Bar */}
-          <form onSubmit={handleSend} className="flex gap-1.5 pt-2 border-t border-slate-800/80">
+          <form onSubmit={handleSend} className="flex gap-1.5 pt-2 border-t border-slate-800">
             <input
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Send a message..."
+              placeholder="Send message..."
               maxLength={80}
-              className="flex-1 rounded-xl bg-slate-900 px-3 py-1.5 text-xs text-white placeholder-slate-500 border border-slate-700 focus:border-red-500 focus:outline-none"
+              className="flex-1 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white placeholder-slate-500 border border-slate-700 focus:border-red-500 focus:outline-none"
             />
             <button
               type="submit"
               disabled={!text.trim()}
-              className="rounded-xl bg-red-600 px-3 py-1.5 text-white hover:bg-red-500 disabled:opacity-40 transition cursor-pointer"
+              className="rounded-xl bg-red-600 px-3.5 py-2 text-white hover:bg-red-500 disabled:opacity-40 transition cursor-pointer"
             >
               <Send className="h-3.5 w-3.5" />
             </button>

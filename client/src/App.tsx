@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import type { RoomState, RoomSettings } from './types';
@@ -9,11 +9,11 @@ import { RevealView } from './components/RevealView';
 import { GameOverView } from './components/GameOverView';
 import { ChatDrawer } from './components/ChatDrawer';
 import { sounds } from './utils/sounds';
-import { Plus, Users, Sparkles, AlertCircle } from 'lucide-react';
+import { getMascot, MASCOTS } from './data/mascots';
+import { Plus, Users, AlertCircle, Play } from 'lucide-react';
 
-const SOCKET_SERVER_URL = import.meta.env.VITE_SERVER_URL || (
-  window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin
-);
+// Connect dynamically to the backend using current hostname (works for localhost AND phone Wi-Fi IP!)
+const SOCKET_SERVER_URL = import.meta.env.VITE_SERVER_URL || `http://${window.location.hostname}:3001`;
 
 export function App() {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -22,9 +22,6 @@ export function App() {
   const [avatar, setAvatar] = useState<string>('pikachu');
   const [joinCodeInput, setJoinCodeInput] = useState<string>('');
   const [joinError, setJoinError] = useState<string | null>(null);
-
-  // Settings
-  const [isAsciiMode, setIsAsciiMode] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
 
   // Guess feedback state
@@ -33,6 +30,9 @@ export function App() {
     message?: string;
   }>({ status: null });
 
+  const prevRoundRef = useRef<number>(0);
+  const prevPhaseRef = useRef<string>('landing');
+
   // Initialize Socket.io connection
   useEffect(() => {
     const s = io(SOCKET_SERVER_URL, {
@@ -40,19 +40,33 @@ export function App() {
     });
 
     s.on('connect', () => {
-      console.log('Connected to game server. Socket ID:', s.id);
+      console.log('Connected to game server at', SOCKET_SERVER_URL, 'Socket ID:', s.id);
     });
 
     s.on('room_state', (state: RoomState) => {
-      setRoomState((prevState) => {
-        // If phase transitioned to revealed, trigger Pokémon cry
-        if (prevState?.phase !== 'revealed' && state.phase === 'revealed') {
-          if (state.revealPokemon?.cryUrl) {
-            sounds.playPokemonCry(state.revealPokemon.cryUrl);
-          }
+      // (Item 4 Fix): If round number changed or phase transitioned to countdown/playing, clear previous guess feedback!
+      if (
+        state.currentRound !== prevRoundRef.current ||
+        (state.phase === 'countdown' && prevPhaseRef.current !== 'countdown')
+      ) {
+        setGuessFeedback({ status: null });
+        prevRoundRef.current = state.currentRound;
+      }
+
+      // (Item 1): If phase entered countdown, play the original "Who's That Pokémon?!" anime sound effect!
+      if (prevPhaseRef.current !== 'countdown' && state.phase === 'countdown') {
+        sounds.playWhosThatPokemon();
+      }
+
+      // If phase transitioned to revealed, trigger Pokémon cry
+      if (prevPhaseRef.current !== 'revealed' && state.phase === 'revealed') {
+        if (state.revealPokemon?.cryUrl) {
+          sounds.playPokemonCry(state.revealPokemon.cryUrl);
         }
-        return state;
-      });
+      }
+
+      prevPhaseRef.current = state.phase;
+      setRoomState(state);
     });
 
     s.on('timer_tick', ({ timer, phase }: { timer: number; phase: string }) => {
@@ -108,14 +122,13 @@ export function App() {
         if (res.success) {
           setRoomState(res.room);
         } else {
-          setJoinError(res.error || 'Room not found');
+          setJoinError(res.error || 'Room not found. Check code!');
         }
       }
     );
   };
 
   const handleSoloPractice = () => {
-    // Solo practice creates a room with just the player
     handleCreateRoom();
   };
 
@@ -131,6 +144,7 @@ export function App() {
 
   const handleStartGame = () => {
     if (!socket || !roomState) return;
+    setGuessFeedback({ status: null });
     socket.emit('start_game', { code: roomState.code });
   };
 
@@ -158,6 +172,7 @@ export function App() {
 
   const handlePlayAgain = () => {
     if (!socket || !roomState) return;
+    setGuessFeedback({ status: null });
     socket.emit('play_again', { code: roomState.code });
   };
 
@@ -168,63 +183,98 @@ export function App() {
   };
 
   const currentSocketId = socket?.id || '';
+  const currentMascot = getMascot(avatar);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans select-none">
       <Header
         roomCode={roomState?.code}
         playerCount={roomState ? Object.keys(roomState.players).length : 0}
-        isAsciiMode={isAsciiMode}
-        onToggleAsciiMode={() => setIsAsciiMode(!isAsciiMode)}
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
         phase={roomState?.phase || 'landing'}
       />
 
-      <main className="flex-1 flex flex-col items-center justify-center py-4">
+      <main className="flex-1 flex flex-col items-center justify-center p-3 sm:p-4">
         {!roomState ? (
-          /* Landing Screen (Join or Create Room) */
-          <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">
+          /* Classic Pokémon Game Boy / Arena Landing Screen */
+          <div className="mx-auto flex w-full max-w-lg flex-col gap-5 p-3 sm:p-6 animate-fadeIn">
             <div className="flex flex-col items-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-red-600 shadow-xl shadow-red-600/40 animate-pulse">
-                <Sparkles className="h-8 w-8 text-white" />
+              {/* Selected Companion Mascot with Black Outline */}
+              <div className="relative mb-2 flex h-24 w-24 items-center justify-center rounded-3xl bg-radial from-amber-400 via-amber-500 to-amber-600 p-2 shadow-[0_10px_25px_rgba(245,158,11,0.5)] border-4 border-slate-200">
+                <img
+                  src={currentMascot.spriteUrl}
+                  alt={currentMascot.name}
+                  className="h-20 w-20 object-contain pokemon-sprite-icon"
+                />
               </div>
-              <h2 className="mt-4 text-3xl font-black text-white sm:text-4xl">
-                Ready to Battle?
+
+              <h2 className="pokemon-title-text text-3xl sm:text-4xl font-black uppercase tracking-wider drop-shadow-lg">
+                Who's That Pokémon?
               </h2>
-              <p className="mt-2 text-sm text-slate-400">
-                Guess the Pokémon from their silhouettes or retro ASCII prints in live multiplayer!
+              <p className="mt-1 text-xs sm:text-sm text-slate-300 font-medium">
+                Live multiplayer battle arena! Guess Pokémon from silhouettes and climb the leaderboard.
               </p>
             </div>
 
-            {/* Trainer Name Input */}
-            <div className="flex flex-col gap-2 rounded-3xl bg-slate-900/90 p-5 border border-slate-800 shadow-xl">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Enter Your Trainer Nickname
+            {/* Trainer Profile Card */}
+            <div className="flex flex-col gap-3 rounded-3xl border-2 border-slate-800 bg-slate-900/95 p-5 shadow-2xl backdrop-blur-md">
+              <label className="text-xs font-black uppercase tracking-wider text-amber-400">
+                Choose Trainer Nickname
               </label>
               <input
                 type="text"
                 value={trainerName}
                 onChange={(e) => setTrainerName(e.target.value)}
                 maxLength={15}
-                placeholder="Trainer Name"
-                className="rounded-2xl bg-slate-950 px-4 py-3 text-base font-bold text-white border border-slate-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                placeholder="Enter Trainer Nickname"
+                className="rounded-2xl bg-slate-950 px-4 py-3.5 text-base font-bold text-white border-2 border-slate-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
               />
+
+              {/* Starter Mascot Selector (No Emojis - Real Pokémon Sprites!) */}
+              <div className="mt-1">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
+                  <span>Starter Companion</span>
+                  <span className="text-amber-300">{currentMascot.name}</span>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                  {MASCOTS.slice(0, 5).map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setAvatar(m.id)}
+                      className={`flex flex-col items-center justify-center rounded-2xl p-1.5 border-2 transition cursor-pointer ${
+                        avatar === m.id
+                          ? 'border-amber-400 bg-amber-400/20 shadow-md scale-105'
+                          : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                      }`}
+                    >
+                      <img
+                        src={m.spriteUrl}
+                        alt={m.name}
+                        className="h-10 w-10 object-contain pokemon-sprite-icon"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Action Buttons: Host vs Join */}
-            <div className="flex flex-col gap-4">
+            {/* Battle Actions: Host vs Join */}
+            <div className="flex flex-col gap-3.5">
               <button
                 onClick={handleCreateRoom}
-                className="flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 text-base font-black uppercase tracking-wider text-white shadow-xl shadow-red-600/30 hover:from-red-500 hover:to-rose-500 active:scale-95 transition cursor-pointer"
+                className="flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 text-base font-black uppercase tracking-wider text-white shadow-xl shadow-red-600/30 hover:brightness-110 active:scale-95 transition cursor-pointer"
               >
                 <Plus className="h-5 w-5" />
-                <span>Host New Multiplayer Room</span>
+                <span>Host Multiplayer Battle</span>
               </button>
 
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-slate-800" />
-                <span className="text-xs font-bold text-slate-500 uppercase">OR JOIN WITH CODE</span>
+                <span className="text-xs font-black uppercase tracking-wider text-slate-500">
+                  OR ENTER ROOM CODE
+                </span>
                 <div className="h-px flex-1 bg-slate-800" />
               </div>
 
@@ -234,31 +284,32 @@ export function App() {
                   value={joinCodeInput}
                   onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
                   maxLength={4}
-                  placeholder="ROOM CODE"
-                  className="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-center text-lg font-mono font-black uppercase tracking-widest text-amber-400 placeholder-slate-600 border border-slate-700 focus:border-amber-400 focus:outline-none"
+                  placeholder="4-LETTER CODE"
+                  className="flex-1 rounded-2xl bg-slate-900 px-4 py-3.5 text-center text-lg font-mono font-black uppercase tracking-widest text-amber-400 placeholder-slate-600 border-2 border-slate-700 focus:border-amber-400 focus:outline-none"
                 />
                 <button
                   type="submit"
                   disabled={!joinCodeInput.trim()}
-                  className="flex items-center gap-2 rounded-2xl bg-slate-800 px-6 py-3 font-bold text-white hover:bg-slate-700 active:scale-95 transition disabled:opacity-40 cursor-pointer"
+                  className="flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3.5 font-black uppercase tracking-wider text-slate-950 hover:brightness-110 active:scale-95 transition disabled:opacity-40 cursor-pointer shadow-md"
                 >
-                  <Users className="h-4 w-4" />
+                  <Users className="h-5 w-5" />
                   <span>Join</span>
                 </button>
               </form>
 
               {joinError && (
-                <div className="flex items-center gap-2 rounded-xl bg-rose-950/80 p-3 text-xs font-bold text-rose-300 border border-rose-500/40">
-                  <AlertCircle className="h-4 w-4 text-rose-400" />
+                <div className="flex items-center gap-2 rounded-2xl bg-rose-950 p-3 text-xs font-bold text-rose-300 border-2 border-rose-500">
+                  <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
                   <span>{joinError}</span>
                 </div>
               )}
 
               <button
                 onClick={handleSoloPractice}
-                className="mt-2 text-xs font-bold text-slate-500 hover:text-amber-400 transition cursor-pointer"
+                className="flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-amber-400 transition py-1 cursor-pointer"
               >
-                🎮 Solo Practice Mode (Instant Play)
+                <Play className="h-3.5 w-3.5" />
+                <span>Instant Solo Practice Mode</span>
               </button>
             </div>
           </div>
@@ -289,8 +340,6 @@ export function App() {
             currentPlayerId={currentSocketId}
             onSubmitGuess={handleSubmitGuess}
             guessFeedback={guessFeedback}
-            isAsciiMode={isAsciiMode}
-            onToggleAsciiMode={() => setIsAsciiMode(!isAsciiMode)}
           />
         ) : roomState.phase === 'revealed' ? (
           <RevealView
@@ -312,7 +361,7 @@ export function App() {
         ) : null}
       </main>
 
-      {/* Floating Room Chat & Reaction Drawer */}
+      {/* Real-time Trainer Chat Drawer */}
       {roomState && (
         <ChatDrawer
           messages={roomState.chatMessages}

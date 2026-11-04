@@ -1,7 +1,8 @@
-// Web Audio API Synthesizer for instant, reliable game sound effects
+// Web Audio API Synthesizer & Authentic Pokémon Audio Controller
 class SoundController {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
+  private whosThatPokemonAudio: HTMLAudioElement | null = null;
 
   private getContext(): AudioContext | null {
     if (this.isMuted) return null;
@@ -19,10 +20,32 @@ class SoundController {
 
   public setMuted(muted: boolean) {
     this.isMuted = muted;
+    if (muted && this.whosThatPokemonAudio) {
+      this.whosThatPokemonAudio.pause();
+    }
   }
 
   public getMuted(): boolean {
     return this.isMuted;
+  }
+
+  /**
+   * Play the original "Who's That Pokémon?!" anime sound effect
+   */
+  public playWhosThatPokemon() {
+    if (this.isMuted) return;
+    try {
+      if (!this.whosThatPokemonAudio) {
+        this.whosThatPokemonAudio = new Audio('/audio/whos_that_pokemon.mp3');
+      }
+      this.whosThatPokemonAudio.currentTime = 0;
+      this.whosThatPokemonAudio.volume = 0.8;
+      this.whosThatPokemonAudio.play().catch(e => {
+        console.warn('Could not play Who\'s That Pokémon audio:', e);
+      });
+    } catch (e) {
+      console.warn('Audio play error:', e);
+    }
   }
 
   public playTick() {
@@ -94,7 +117,7 @@ class SoundController {
     if (this.isMuted || !url) return;
     try {
       const audio = new Audio(url);
-      audio.volume = 0.5;
+      audio.volume = 0.6;
       audio.play().catch(e => console.warn('Could not play cry audio:', e));
     } catch (e) {
       console.warn('Audio play error:', e);

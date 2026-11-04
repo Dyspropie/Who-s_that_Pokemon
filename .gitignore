@@ -4,6 +4,8 @@ __pycache__/
 *.pyd
 venv/
 *.mp3
+!whos_that_pokemon.mp3
+!client/public/audio/*.mp3
 
 # Node & Build artifacts
 node_modules/
