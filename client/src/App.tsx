@@ -12,17 +12,28 @@ import { sounds } from './utils/sounds';
 import { getMascot, MASCOTS } from './data/mascots';
 import { Plus, Users, AlertCircle, Play } from 'lucide-react';
 
-// Connect dynamically to the backend using current hostname (works for localhost AND phone Wi-Fi IP!)
 const SOCKET_SERVER_URL = import.meta.env.VITE_SERVER_URL || `http://${window.location.hostname}:3001`;
+
+// LocalStorage Keys (just like jklm.fun)
+const STORAGE_KEY_NAME = 'pokegame_trainer_name';
+const STORAGE_KEY_AVATAR = 'pokegame_trainer_avatar';
 
 export function App() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [roomState, setRoomState] = useState<RoomState | null>(null);
-  const [trainerName, setTrainerName] = useState<string>('Red');
-  const [avatar, setAvatar] = useState<string>('pikachu');
+
+  // Load saved trainer name & avatar from localStorage, or sensible defaults
+  const [trainerName, setTrainerNameState] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEY_NAME) || 'Red';
+  });
+  const [avatar, setAvatarState] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEY_AVATAR) || 'pikachu';
+  });
+
   const [joinCodeInput, setJoinCodeInput] = useState<string>('');
   const [joinError, setJoinError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
   // Guess feedback state
   const [guessFeedback, setGuessFeedback] = useState<{
@@ -32,6 +43,26 @@ export function App() {
 
   const prevRoundRef = useRef<number>(0);
   const prevPhaseRef = useRef<string>('landing');
+
+  // Custom setters that sync with localStorage (like jklm.fun)
+  const setTrainerName = (name: string) => {
+    setTrainerNameState(name);
+    localStorage.setItem(STORAGE_KEY_NAME, name);
+  };
+
+  const setAvatar = (newAvatar: string) => {
+    setAvatarState(newAvatar);
+    localStorage.setItem(STORAGE_KEY_AVATAR, newAvatar);
+  };
+
+  // Check URL parameters for shareable invite link (e.g. ?room=PIKA)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const roomParam = params.get('room') || params.get('r');
+    if (roomParam && roomParam.trim().length === 4) {
+      setJoinCodeInput(roomParam.trim().toUpperCase());
+    }
+  }, []);
 
   // Initialize Socket.io connection
   useEffect(() => {
@@ -44,7 +75,7 @@ export function App() {
     });
 
     s.on('room_state', (state: RoomState) => {
-      // (Item 4 Fix): If round number changed or phase transitioned to countdown/playing, clear previous guess feedback!
+      // Clear previous guess feedback on new round
       if (
         state.currentRound !== prevRoundRef.current ||
         (state.phase === 'countdown' && prevPhaseRef.current !== 'countdown')
@@ -53,12 +84,12 @@ export function App() {
         prevRoundRef.current = state.currentRound;
       }
 
-      // (Item 1): If phase entered countdown, play the original "Who's That Pokémon?!" anime sound effect!
+      // Play original sound on countdown
       if (prevPhaseRef.current !== 'countdown' && state.phase === 'countdown') {
         sounds.playWhosThatPokemon();
       }
 
-      // If phase transitioned to revealed, trigger Pokémon cry
+      // Trigger Pokémon cry on reveal
       if (prevPhaseRef.current !== 'revealed' && state.phase === 'revealed') {
         if (state.revealPokemon?.cryUrl) {
           sounds.playPokemonCry(state.revealPokemon.cryUrl);
@@ -67,6 +98,15 @@ export function App() {
 
       prevPhaseRef.current = state.phase;
       setRoomState(state);
+
+      // Keep browser address bar in sync with room code for easy bookmarking
+      if (state.code) {
+        const currentUrl = new URL(window.location.href);
+        if (currentUrl.searchParams.get('room') !== state.code) {
+          currentUrl.searchParams.set('room', state.code);
+          window.history.replaceState({}, '', currentUrl.toString());
+        }
+      }
     });
 
     s.on('timer_tick', ({ timer, phase }: { timer: number; phase: string }) => {
@@ -111,8 +151,8 @@ export function App() {
     });
   };
 
-  const handleJoinRoom = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleJoinRoom = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!socket || !joinCodeInput.trim()) return;
     setJoinError(null);
     socket.emit(
@@ -182,6 +222,20 @@ export function App() {
     sounds.setMuted(nextMuted);
   };
 
+  // Generate 1-click shareable invite link (e.g. https://domain.vercel.app/?room=PIKA)
+  const getInviteUrl = (code?: string): string => {
+    const currentCode = code || roomState?.code;
+    if (!currentCode) return window.location.href;
+    return `${window.location.origin}${window.location.pathname}?room=${currentCode}`;
+  };
+
+  const handleCopyInviteLink = () => {
+    const url = getInviteUrl();
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
   const currentSocketId = socket?.id || '';
   const currentMascot = getMascot(avatar);
 
@@ -193,14 +247,15 @@ export function App() {
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
         phase={roomState?.phase || 'landing'}
+        onCopyInvite={handleCopyInviteLink}
+        copiedLink={copiedLink}
       />
 
       <main className="flex-1 flex flex-col items-center justify-center p-3 sm:p-4">
         {!roomState ? (
-          /* Classic Pokémon Game Boy / Arena Landing Screen */
+          /* Classic Pokémon Landing Screen */
           <div className="mx-auto flex w-full max-w-lg flex-col gap-5 p-3 sm:p-6 animate-fadeIn">
             <div className="flex flex-col items-center text-center">
-              {/* Selected Companion Mascot with Black Outline */}
               <div className="relative mb-2 flex h-24 w-24 items-center justify-center rounded-3xl bg-radial from-amber-400 via-amber-500 to-amber-600 p-2 shadow-[0_10px_25px_rgba(245,158,11,0.5)] border-4 border-slate-200">
                 <img
                   src={currentMascot.spriteUrl}
@@ -217,11 +272,14 @@ export function App() {
               </p>
             </div>
 
-            {/* Trainer Profile Card */}
+            {/* Trainer Profile Card (Persists in localStorage like jklm.fun) */}
             <div className="flex flex-col gap-3 rounded-3xl border-2 border-slate-800 bg-slate-900/95 p-5 shadow-2xl backdrop-blur-md">
-              <label className="text-xs font-black uppercase tracking-wider text-amber-400">
-                Choose Trainer Nickname
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-amber-400">
+                  Trainer Nickname
+                </label>
+                <span className="text-[10px] text-slate-400 font-mono">SAVED AUTOMATICALLY</span>
+              </div>
               <input
                 type="text"
                 value={trainerName}
@@ -231,11 +289,11 @@ export function App() {
                 className="rounded-2xl bg-slate-950 px-4 py-3.5 text-base font-bold text-white border-2 border-slate-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20"
               />
 
-              {/* Starter Mascot Selector (No Emojis - Real Pokémon Sprites!) */}
+              {/* Starter Companion Mascot Selector */}
               <div className="mt-1">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-400 mb-2">
                   <span>Starter Companion</span>
-                  <span className="text-amber-300">{currentMascot.name}</span>
+                  <span className="text-amber-300 font-bold">{currentMascot.name}</span>
                 </div>
                 <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                   {MASCOTS.slice(0, 5).map((m) => (
@@ -273,7 +331,7 @@ export function App() {
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-slate-800" />
                 <span className="text-xs font-black uppercase tracking-wider text-slate-500">
-                  OR ENTER ROOM CODE
+                  {joinCodeInput ? 'INVITE CODE DETECTED' : 'OR ENTER ROOM CODE'}
                 </span>
                 <div className="h-px flex-1 bg-slate-800" />
               </div>
@@ -285,7 +343,11 @@ export function App() {
                   onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
                   maxLength={4}
                   placeholder="4-LETTER CODE"
-                  className="flex-1 rounded-2xl bg-slate-900 px-4 py-3.5 text-center text-lg font-mono font-black uppercase tracking-widest text-amber-400 placeholder-slate-600 border-2 border-slate-700 focus:border-amber-400 focus:outline-none"
+                  className={`flex-1 rounded-2xl bg-slate-900 px-4 py-3.5 text-center text-lg font-mono font-black uppercase tracking-widest text-amber-400 placeholder-slate-600 border-2 focus:outline-none ${
+                    joinCodeInput.length === 4
+                      ? 'border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.25)]'
+                      : 'border-slate-700 focus:border-amber-400'
+                  }`}
                 />
                 <button
                   type="submit"
@@ -327,6 +389,8 @@ export function App() {
             setTrainerName={setTrainerName}
             avatar={avatar}
             setAvatar={setAvatar}
+            onCopyInvite={handleCopyInviteLink}
+            copiedLink={copiedLink}
           />
         ) : roomState.phase === 'countdown' || roomState.phase === 'playing' ? (
           <GameView

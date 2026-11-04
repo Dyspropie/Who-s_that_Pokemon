@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Volume2, VolumeX, Copy, Check, Users } from 'lucide-react';
+import React from 'react';
+import { Volume2, VolumeX, Link as LinkIcon, Check, Users } from 'lucide-react';
 
 interface HeaderProps {
   roomCode?: string;
@@ -7,6 +7,8 @@ interface HeaderProps {
   isMuted: boolean;
   onToggleMute: () => void;
   phase: string;
+  onCopyInvite?: () => void;
+  copiedLink?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -14,17 +16,10 @@ export const Header: React.FC<HeaderProps> = ({
   playerCount = 1,
   isMuted,
   onToggleMute,
-  phase
+  phase,
+  onCopyInvite,
+  copiedLink
 }) => {
-  const [copied, setCopied] = useState(false);
-
-  const copyRoomCode = () => {
-    if (!roomCode) return;
-    navigator.clipboard.writeText(roomCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
     <header className="relative z-30 flex flex-wrap items-center justify-between gap-3 border-b-4 border-red-950 bg-gradient-to-r from-red-600 via-red-600 to-rose-700 px-4 py-3 shadow-[0_10px_25px_rgba(0,0,0,0.6)]">
       {/* Top Pokédex Hinge / Curve Notch */}
@@ -62,21 +57,21 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Room Code Badge (Styled like an official Pokémon Gym Badge) */}
-        {roomCode && (
+        {/* Room Code & 1-Click Shareable Invite Button (skribbl.io style) */}
+        {roomCode && onCopyInvite && (
           <button
-            onClick={copyRoomCode}
-            title="Click to copy room code"
-            className="flex items-center gap-2 rounded-2xl bg-slate-950/80 px-3.5 py-2 text-xs font-mono font-black tracking-widest text-amber-400 hover:bg-black transition border-2 border-amber-400/60 shadow-[0_0_15px_rgba(251,191,36,0.25)] active:scale-95 cursor-pointer"
+            onClick={onCopyInvite}
+            title="Click to copy 1-click shareable invite link"
+            className="flex items-center gap-2 rounded-2xl bg-slate-950/85 px-3.5 py-2 text-xs font-mono font-black tracking-widest text-amber-400 hover:bg-black transition border-2 border-amber-400/60 shadow-[0_0_15px_rgba(251,191,36,0.25)] active:scale-95 cursor-pointer"
           >
             <span className="text-slate-400 font-sans tracking-normal font-bold hidden sm:inline">ROOM:</span>
             <span className="text-sm">{roomCode}</span>
-            {copied ? (
+            {copiedLink ? (
               <span className="text-emerald-400 flex items-center gap-1 font-sans text-[11px]">
-                <Check className="h-3.5 w-3.5" /> Copied!
+                <Check className="h-3.5 w-3.5" /> Link Copied!
               </span>
             ) : (
-              <Copy className="h-3.5 w-3.5 opacity-70" />
+              <LinkIcon className="h-3.5 w-3.5 opacity-80" />
             )}
           </button>
         )}

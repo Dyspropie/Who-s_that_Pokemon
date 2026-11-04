@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Player, RoomSettings } from '../types';
 import { MASCOTS, getMascot } from '../data/mascots';
-import { Crown, CheckCircle2, Circle, Play, Settings, Sparkles, User, Shield } from 'lucide-react';
+import { Crown, CheckCircle2, Circle, Play, Settings, Sparkles, User, Shield, Link as LinkIcon, Check } from 'lucide-react';
 
 interface LobbyViewProps {
   roomCode: string;
@@ -16,6 +16,8 @@ interface LobbyViewProps {
   setTrainerName: (name: string) => void;
   avatar: string;
   setAvatar: (avatar: string) => void;
+  onCopyInvite: () => void;
+  copiedLink: boolean;
 }
 
 export const LobbyView: React.FC<LobbyViewProps> = ({
@@ -30,7 +32,9 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
   trainerName,
   setTrainerName,
   avatar,
-  setAvatar
+  setAvatar,
+  onCopyInvite,
+  copiedLink
 }) => {
   const playerList = Object.values(players);
   const currentPlayer = players[currentPlayerId];
@@ -39,7 +43,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-3 sm:p-6">
       {/* Lobby Hero Arena Card */}
       <div className="relative overflow-hidden rounded-3xl border-4 border-red-700 bg-gradient-to-r from-red-950/90 via-slate-900 to-indigo-950/90 p-5 sm:p-7 shadow-[0_15px_35px_rgba(0,0,0,0.7)] backdrop-blur-md">
-        {/* Subtle Background Pokeball Watermark */}
         <div className="absolute -right-12 -bottom-12 h-64 w-64 rounded-full border-[18px] border-white/5 opacity-40 pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
@@ -52,8 +55,28 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               Room Code: <span className="font-mono text-amber-400 tracking-widest drop-shadow-[0_0_12px_rgba(251,191,36,0.6)]">{roomCode}</span>
             </h2>
             <p className="mt-1 text-xs sm:text-sm text-slate-300">
-              Share the code with friends or open on your phone to join the battle!
+              Share the invite link with friends on Discord or WhatsApp to join in 1 click!
             </p>
+
+            {/* 1-Click Invite Link Pill (Skribbl.io Style) */}
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                onClick={onCopyInvite}
+                className="flex items-center gap-2 rounded-xl bg-black/60 px-4 py-2 text-xs font-bold text-amber-300 hover:bg-black transition border border-amber-400/40 active:scale-95 cursor-pointer shadow-md"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="h-4 w-4 text-emerald-400" />
+                    <span className="text-emerald-400">Invite Link Copied to Clipboard!</span>
+                  </>
+                ) : (
+                  <>
+                    <LinkIcon className="h-4 w-4 text-amber-400" />
+                    <span>Copy Shareable Invite Link</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -93,7 +116,7 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {/* Left Column: Trainer Setup & Mascot Picker (NO EMOJIS - REAL POKÉMON SPRITES WITH BLACK OUTLINE!) */}
+        {/* Left Column: Trainer Profile & Mascot Picker */}
         <div className="flex flex-col gap-4 rounded-3xl border-2 border-slate-800 bg-slate-900/90 p-5 shadow-xl">
           <div className="flex items-center gap-2 text-sm font-black text-amber-400 uppercase tracking-wider">
             <User className="h-4 w-4" />
@@ -122,7 +145,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
               </span>
             </div>
 
-            {/* Mascot Grid: Authentic Sprites with Black Outline */}
             <div className="mt-2.5 grid grid-cols-3 gap-2">
               {MASCOTS.map((m) => {
                 const isSelected = avatar === m.id;
@@ -178,7 +200,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    {/* Companion Sprite with Black Outline */}
                     <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 border border-slate-700 shadow-inner">
                       <img
                         src={mascot.spriteUrl}
@@ -228,7 +249,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             <span>Rules {isHost ? '(Host Only)' : '(Locked)'}</span>
           </div>
 
-          {/* Difficulty / Gens */}
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Generation Scope</label>
             <div className="mt-1.5 grid grid-cols-2 gap-2">
@@ -254,7 +274,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             </div>
           </div>
 
-          {/* Seconds per round */}
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Round Countdown</label>
             <div className="mt-1.5 flex gap-2">
@@ -275,7 +294,6 @@ export const LobbyView: React.FC<LobbyViewProps> = ({
             </div>
           </div>
 
-          {/* Total Rounds */}
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Rounds</label>
             <div className="mt-1.5 flex gap-2">
