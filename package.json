@@ -1,0 +1,16 @@
+{
+  "name": "who-is-that-pokemon",
+  "version": "2.0.0",
+  "description": "Who's That Pokémon? - Full-Stack Multiplayer Game with Retro ASCII Mode",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build:server": "npm --prefix server run build",
+    "build:client": "npm --prefix client run build",
+    "build": "npm run build:server && npm run build:client",
+    "start": "npm --prefix server run start"
+  },
+  "keywords": ["pokemon", "multiplayer", "ascii", "game", "socket.io", "react"],
+  "author": "Dyspropie",
+  "license": "MIT"
+}

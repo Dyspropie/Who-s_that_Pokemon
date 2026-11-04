@@ -1,106 +1,99 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/Who's%20That%20Pokémon%3F-Terminal%20Game-blueviolet?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Who's%20That%20Pokémon%3F-Full--Stack%20%26%20CLI%20Game-blueviolet?style=for-the-badge&logo=pokemon&logoColor=white" />
 </p>
 
-<h1 align="center">Who's That Pokémon? 🔍 (CLI Edition)</h1>
+<h1 align="center">Who's That Pokémon? 🔍 (Full-Stack Multiplayer & ASCII Edition)</h1>
 
 <p align="center">
-  A fun terminal-based guessing game where you try to identify the Pokémon based on ASCII art — complete with sound effects, difficulty levels, and a scoring system.
+  A modern, real-time multiplayer party game and nostalgic tribute to the iconic Pokémon anime segment — featuring high-definition silhouette unmasking, authentic audio cries, live buzzer speed-scoring, and an awesome <b>Retro CRT ASCII Art Mode</b>!
 </p>
 
 ---
 
-## 🎮 Features
+## 🌟 What's New in v2.0 (Full-Stack Multiplayer Edition)
 
-- 🎨 ASCII-rendered Pokémon using [`ascii_magic`](https://pypi.org/project/ascii-magic/)
-- 🎵 Pokémon theme sound using [`pygame`](https://pypi.org/project/pygame/)
-- 🧠 Difficulty modes: Easy (Gen 1), Medium (Gen 2), Hard (All Gens)
-- ⚡ Time-based scoring bonus: faster guesses earn more points
-- 🔁 Replayable with live score tracking
+- 👥 **Real-Time Multiplayer Lobbies**: Create or join rooms with 4-letter codes (e.g., `PIKA`, `BULB`). Play with friends on desktop or mobile!
+- 🎨 **Authentic PokéDex UI**: Sunburst anime background, pulsing blue sensor LED, and high-precision silhouette unmask transitions.
+- 📟 **Retro CRT ASCII Art Mode**:
+  - Toggle between **HD Anime Mode** and **Phosphor Green / Full-Color ASCII Art** on the fly.
+  - Generates colored monospace ASCII art directly from any Pokémon sprite.
+  - Includes a dedicated **"Terminal ASCII Spec"** tab with a 1-click **"Copy ASCII"** button.
+- ⏱️ **Live Speed-Scoring & Streaks**: Faster correct guesses earn up to 200 points per round with compounding streak combo multipliers!
+- 🔊 **Web Audio & Authentic Cries**: Synthesized retro timer ticks and chimes + official Pokémon voice cries streamed directly from PokéAPI.
+- 💬 **Live Chat & Emoji Reactions**: Taunt and celebrate with friends in real-time (`🔥`, `⚡`, `🎉`, `😭`, `😱`).
+- 🏆 **Podium & Confetti Finale**: Automatic MVP tracking, gold/silver/bronze podium, and tournament celebration!
+- 🐍 **Classic Python CLI Preserved**: The original terminal game script (`pokemon.py`) remains intact in the root directory.
 
 ---
 
-## 🚀 Installation
+## 🚀 Quickstart Guide
 
-### 1. Clone the Repository
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v18 or newer)
+- [Python 3.8+](https://www.python.org/) *(only needed if you want to run the legacy CLI version)*
 
-```bash
-git clone https://github.com/Dyspropie/Who-s_that_Pokemon.git
-cd Who-s_that_Pokemon
+---
+
+### Option A: Run the Modern Full-Stack Web App (Recommended)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Dyspropie/Who-s_that_Pokemon.git
+   cd Who-s_that_Pokemon
+   ```
+
+2. **Start the Backend Server (Port 3001):**
+   ```bash
+   cd server
+   npm install
+   npm run dev
+   ```
+
+3. **In a second terminal, start the Frontend (Port 5173):**
+   ```bash
+   cd client
+   npm install
+   npm run dev
+   ```
+
+4. **Play!** Open your browser to `http://localhost:5173`.
+   - Click **Host New Multiplayer Room** to get a 4-letter code.
+   - Open another tab or device to `http://localhost:5173`, enter the code, and battle your friends!
+   - Or click **Solo Practice Mode** for instant single-player action.
+
+---
+
+### Option B: Run the Classic Python CLI Version
+
+The original terminal version is preserved:
+
+1. **Install Python dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Run the game:**
+   ```bash
+   python pokemon.py
+   ```
+
+---
+
+## 🛠️ Architecture & Tech Stack
+
+```mermaid
+graph TD
+    Client["Frontend (React 19 + Vite + Tailwind CSS + Canvas ASCII)"]
+    Server["Backend (Node.js + Express + Socket.io + TypeScript)"]
+    PokeAPI["PokéAPI (Sprites, Artwork, Audio Cries)"]
+
+    Client <-->|Socket.io: Guess, Ready, Timer Tick, Chat| Server
+    Server -->|Fetch & Cache| PokeAPI
 ```
 
-### 2. (Optional) Create a Virtual Environment
-
-```bash
-python -m venv venv
-# Activate:
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## ▶️ How to Play
-
-Make sure the audio file `whos_that_pokemon.mp3` is in the same folder as your Python script.
-
-```bash
-python pokemon.py
-```
-
-- You’ll hear the “Who’s That Pokémon?” theme.
-- A colored ASCII image of a random Pokémon will appear.
-- Type your guess — the faster you guess, the higher your score!
-- Choose your difficulty: easy, medium, or hard.
-- Play as many rounds as you want — score keeps stacking!
-
----
-
-## 📸 Preview
-
-![Gameplay Screenshot](preview/preview1.png)
-![Another Round](preview/preview2.png)
----
-
-## 🧾 Dependencies
-
-The game requires the following Python packages:
-
-- [`ascii_magic`](https://pypi.org/project/ascii-magic/)
-- [`pygame`](https://pypi.org/project/pygame/)
-- [`requests`](https://pypi.org/project/requests/)
-
-Install them via:
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 🛠 Setup Shortcuts
-
-You can use the provided setup scripts for one-click setup:
-
-- On **Windows**: run `setup.bat`
-- On **Linux/macOS**: run `bash setup.sh`
-
----
-
-## 💡 Ideas for Future Versions
-
-- Silhouette (blackout) mode
-- ASCII animation reveal
-- Multiplayer leaderboard
-- GUI version using `tkinter` or `PyGame`
+- **Frontend**: React 19, Vite, Tailwind CSS v4, Lucide Icons, Canvas Confetti, Web Audio API Synthesizer.
+- **Backend**: Node.js, Express, Socket.io, TypeScript (`tsx`).
+- **Data & Audio**: PokéAPI (official sprites, high-res artwork, and audio cries).
 
 ---
 
@@ -108,25 +101,8 @@ You can use the provided setup scripts for one-click setup:
 
 Made with ❤️ by [@Dyspropie](https://github.com/Dyspropie)
 
-Inspired by the Pokémon franchise and the power of ASCII art.
-
 ---
 
 ## 📜 License
 
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-## 📦 Folder Structure
-
-```
-Who-s_that_pokemon/
-├── pokemon.py                  # Main game script
-├── whos_that_pokemon.mp3       # Pokémon theme audio
-├── requirements.txt            # Dependencies
-├── .gitignore                  # Ignore venv, mp3, cache files
-├── setup.sh                    # Linux/macOS setup
-├── setup.bat                   # Windows setup
-└── README.md                   # You're here
-```
+This project is licensed under the [MIT License](License.md).
